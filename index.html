@@ -6,6 +6,7 @@
     <title>DS_Credit_Vivo – Full Platform</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { background: #f8fafc; font-family: 'Inter', system-ui, sans-serif; }
         .bg-primary { background: #1A3C6E; }
@@ -28,28 +29,61 @@
         .hidden { display: none; }
         .login-container { max-width: 400px; margin: 100px auto; }
         .login-box { background: white; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); padding: 40px; }
+        .error-msg { color: red; font-size: 14px; margin-top: 8px; display: none; }
     </style>
 </head>
 <body>
 
-    <!-- ===== LOGIN ===== -->
+    <!-- ===== LOGIN PAGE ===== -->
     <div id="page-login" class="page active">
         <div class="login-container">
             <div class="login-box">
                 <h1 class="text-3xl font-bold text-primary text-center mb-2">DS_Credit_Vivo</h1>
                 <p class="text-center text-gray-500 text-sm mb-6">Sign in to your account</p>
-                <form onsubmit="event.preventDefault(); login();">
+                <form id="loginForm" onsubmit="event.preventDefault(); login();">
                     <div class="mb-4">
                         <label class="block text-sm font-medium text-gray-700">Email</label>
-                        <input type="email" id="loginEmail" value="demo@dscreditvivo.com" class="w-full p-3 border rounded-lg mt-1" />
+                        <input type="email" id="loginEmail" class="w-full p-3 border rounded-lg mt-1" required />
                     </div>
                     <div class="mb-4">
                         <label class="block text-sm font-medium text-gray-700">Password</label>
-                        <input type="password" id="loginPassword" value="password123" class="w-full p-3 border rounded-lg mt-1" />
+                        <input type="password" id="loginPassword" class="w-full p-3 border rounded-lg mt-1" required />
                     </div>
+                    <div id="loginError" class="error-msg"></div>
                     <button type="submit" class="w-full bg-primary text-white py-3 rounded-lg font-bold hover:bg-blue-800 transition">Sign In</button>
                 </form>
-                <p class="text-center text-sm text-gray-500 mt-4">Demo: use the pre-filled credentials and click Sign In</p>
+                <p class="text-center text-sm text-gray-500 mt-4">
+                    Don't have an account? <a href="#" onclick="showSignup()" class="text-primary underline">Sign up</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== SIGNUP PAGE ===== -->
+    <div id="page-signup" class="page">
+        <div class="login-container">
+            <div class="login-box">
+                <h1 class="text-3xl font-bold text-primary text-center mb-2">Create Account</h1>
+                <p class="text-center text-gray-500 text-sm mb-6">Start your credit repair journey</p>
+                <form id="signupForm" onsubmit="event.preventDefault(); signup();">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700">Full Name</label>
+                        <input type="text" id="signupName" class="w-full p-3 border rounded-lg mt-1" required />
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700">Email</label>
+                        <input type="email" id="signupEmail" class="w-full p-3 border rounded-lg mt-1" required />
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700">Password</label>
+                        <input type="password" id="signupPassword" class="w-full p-3 border rounded-lg mt-1" required />
+                    </div>
+                    <div id="signupError" class="error-msg"></div>
+                    <button type="submit" class="w-full bg-primary text-white py-3 rounded-lg font-bold hover:bg-blue-800 transition">Create Account</button>
+                </form>
+                <p class="text-center text-sm text-gray-500 mt-4">
+                    Already have an account? <a href="#" onclick="showLogin()" class="text-primary underline">Sign in</a>
+                </p>
             </div>
         </div>
     </div>
@@ -57,7 +91,6 @@
     <!-- ===== MAIN APP ===== -->
     <div id="page-app" class="page">
 
-        <!-- Navigation -->
         <nav class="bg-primary text-white p-4 shadow-md">
             <div class="max-w-6xl mx-auto flex items-center justify-between">
                 <span class="text-2xl font-bold tracking-tight">DS_Credit_Vivo</span>
@@ -78,23 +111,18 @@
                 <h1 class="text-3xl font-bold text-primary mb-6">Dashboard</h1>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                     <div class="card"><h3 class="text-gray-500 text-sm uppercase tracking-wide">Current Score</h3><p class="text-4xl font-bold text-primary" id="displayScore">620</p><span class="text-sm text-green-600">▲ +5 from last month</span></div>
-                    <div class="card"><h3 class="text-gray-500 text-sm uppercase tracking-wide">Derogatory Items</h3><p class="text-4xl font-bold text-primary">5</p><span class="text-sm text-gray-500">Across 3 bureaus</span></div>
-                    <div class="card"><h3 class="text-gray-500 text-sm uppercase tracking-wide">High Priority</h3><p class="text-4xl font-bold text-accent">2</p><span class="text-sm text-red-500">Needs immediate action</span></div>
+                    <div class="card"><h3 class="text-gray-500 text-sm uppercase tracking-wide">Derogatory Items</h3><p class="text-4xl font-bold text-primary" id="totalItems">0</p><span class="text-sm text-gray-500">Across 3 bureaus</span></div>
+                    <div class="card"><h3 class="text-gray-500 text-sm uppercase tracking-wide">High Priority</h3><p class="text-4xl font-bold text-accent" id="highPriority">0</p><span class="text-sm text-red-500">Needs immediate action</span></div>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="card"><h3 class="font-bold text-gray-700 mb-3">Score Trend</h3><canvas id="lineChart" height="150"></canvas></div>
                     <div class="card"><h3 class="font-bold text-gray-700 mb-3">Dispute Breakdown</h3><canvas id="doughnutChart" height="150"></canvas></div>
                 </div>
                 <div class="card mt-6">
-                    <div class="flex justify-between items-center mb-4"><h3 class="font-bold text-gray-700">Active Disputes</h3><button class="bg-accent text-white px-4 py-1.5 rounded text-sm">+ New Dispute</button></div>
-                    <table class="w-full text-sm">
-                        <thead class="bg-gray-50 text-gray-600 uppercase text-xs"><tr><th class="p-3 text-left">Creditor</th><th class="p-3 text-left">Type</th><th class="p-3 text-left">Priority</th><th class="p-3 text-left">Status</th><th class="p-3 text-left">Action</th></tr></thead>
-                        <tbody>
-                            <tr><td class="p-3 font-medium">ABC Collections</td><td class="p-3">Collection</td><td class="p-3"><span class="badge-high px-2 py-1 rounded-full text-xs">85</span></td><td class="p-3"><span class="badge-pending px-2 py-1 rounded-full text-xs">Pending</span></td><td class="p-3 text-primary underline">View Letter</td></tr>
-                            <tr><td class="p-3 font-medium">XYZ Bank</td><td class="p-3">Late Payment</td><td class="p-3"><span class="badge-medium px-2 py-1 rounded-full text-xs">60</span></td><td class="p-3"><span class="badge-resolved px-2 py-1 rounded-full text-xs">Resolved</span></td><td class="p-3 text-primary underline">View Letter</td></tr>
-                            <tr><td class="p-3 font-medium">National Credit</td><td class="p-3">Inquiry</td><td class="p-3"><span class="badge-high px-2 py-1 rounded-full text-xs">92</span></td><td class="p-3"><span class="badge-submitted px-2 py-1 rounded-full text-xs">Submitted</span></td><td class="p-3 text-primary underline">View Letter</td></tr>
-                        </tbody>
-                    </table>
+                    <div class="flex justify-between items-center mb-4"><h3 class="font-bold text-gray-700">Recent Disputes</h3></div>
+                    <div id="disputesList">
+                        <p class="text-gray-500 text-sm">No disputes yet. Upload a report and run a scan.</p>
+                    </div>
                 </div>
             </div>
 
@@ -107,16 +135,9 @@
                     <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded text-sm">All Items</button>
                 </div>
                 <div class="card">
-                    <table class="w-full text-sm">
-                        <thead class="bg-gray-50 text-gray-600 uppercase text-xs"><tr><th class="p-3 text-left">Creditor</th><th class="p-3 text-left">Type</th><th class="p-3 text-left">Amount</th><th class="p-3 text-left">Priority</th><th class="p-3 text-left">Status</th><th class="p-3 text-left">Action</th></tr></thead>
-                        <tbody>
-                            <tr><td class="p-3 font-medium">ABC Collections</td><td class="p-3">Collection</td><td class="p-3">$1,230.50</td><td class="p-3"><span class="badge-high px-2 py-1 rounded-full text-xs">85</span></td><td class="p-3"><span class="badge-pending px-2 py-1 rounded-full text-xs">Pending</span></td><td class="p-3"><button class="bg-primary text-white px-3 py-1 rounded text-xs">Generate Letter</button></td></tr>
-                            <tr><td class="p-3 font-medium">XYZ Bank</td><td class="p-3">Late Payment</td><td class="p-3">$670.00</td><td class="p-3"><span class="badge-medium px-2 py-1 rounded-full text-xs">60</span></td><td class="p-3"><span class="badge-resolved px-2 py-1 rounded-full text-xs">Resolved</span></td><td class="p-3"><button class="bg-gray-400 text-white px-3 py-1 rounded text-xs" disabled>View Letter</button></td></tr>
-                            <tr><td class="p-3 font-medium">National Credit</td><td class="p-3">Inquiry</td><td class="p-3">$250.00</td><td class="p-3"><span class="badge-high px-2 py-1 rounded-full text-xs">92</span></td><td class="p-3"><span class="badge-submitted px-2 py-1 rounded-full text-xs">Submitted</span></td><td class="p-3"><button class="bg-blue-600 text-white px-3 py-1 rounded text-xs">Track Status</button></td></tr>
-                            <tr><td class="p-3 font-medium">Portfolio Credit</td><td class="p-3">Collection</td><td class="p-3">$3,400.75</td><td class="p-3"><span class="badge-high px-2 py-1 rounded-full text-xs">75</span></td><td class="p-3"><span class="badge-pending px-2 py-1 rounded-full text-xs">Pending</span></td><td class="p-3"><button class="bg-primary text-white px-3 py-1 rounded text-xs">Generate Letter</button></td></tr>
-                            <tr><td class="p-3 font-medium">Capital One</td><td class="p-3">Late Payment</td><td class="p-3">$450.00</td><td class="p-3"><span class="badge-low px-2 py-1 rounded-full text-xs">55</span></td><td class="p-3"><span class="badge-resolved px-2 py-1 rounded-full text-xs">Resolved</span></td><td class="p-3"><button class="bg-gray-400 text-white px-3 py-1 rounded text-xs" disabled>View Letter</button></td></tr>
-                        </tbody>
-                    </table>
+                    <div id="disputesTable">
+                        <p class="text-gray-500 text-sm">No disputes found. Run a scan to find violations.</p>
+                    </div>
                 </div>
             </div>
 
@@ -160,7 +181,8 @@
                     <h2 class="text-xl font-bold text-green-600">✅ Scan Complete</h2>
                     <p class="text-gray-600 mt-1">We found errors on your report:</p>
                     <ul id="errorList" class="mt-3 space-y-2"></ul>
-                    <button onclick="resetScanner()" class="mt-4 bg-primary text-white px-4 py-2 rounded text-sm">Scan Another Report</button>
+                    <button onclick="saveScanResults()" class="mt-4 bg-primary text-white px-4 py-2 rounded text-sm">Save Results</button>
+                    <button onclick="resetScanner()" class="mt-4 bg-gray-300 text-gray-700 px-4 py-2 rounded text-sm">Scan Another Report</button>
                 </div>
             </div>
 
@@ -168,16 +190,134 @@
     </div>
 
     <script>
-        function login() {
+        // ============================================================
+        // STEP 1: SUPABASE SETUP – REPLACE WITH YOUR ACTUAL CREDENTIALS
+        // ============================================================
+        const supabaseUrl = 'https://gykmlrctdzyzoobsmfqw.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5a21scmN0ZHp5em9vYnNtZnF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1ODIyNzUsImV4cCI6MjA5ODE1ODI3NX0.JYC5ULY8w_Ufoebf_3STEpnkgxxvDQ7RIMLypumHIcA'; // <-- REPLACE THIS
+        const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
+        // ============================================================
+        // AUTH FUNCTIONS
+        // ============================================================
+        function showSignup() {
             document.getElementById('page-login').classList.remove('active');
-            document.getElementById('page-app').classList.add('active');
-            setTimeout(() => { renderCharts(); updateSimulator(); }, 100);
-        }
-        function logout() {
-            document.getElementById('page-login').classList.add('active');
-            document.getElementById('page-app').classList.remove('active');
+            document.getElementById('page-signup').classList.add('active');
         }
 
+        function showLogin() {
+            document.getElementById('page-signup').classList.remove('active');
+            document.getElementById('page-login').classList.add('active');
+        }
+
+        async function login() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const errorDiv = document.getElementById('loginError');
+            errorDiv.style.display = 'none';
+            
+            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+            if (error) {
+                errorDiv.textContent = error.message;
+                errorDiv.style.display = 'block';
+                return;
+            }
+            // Success
+            document.getElementById('page-login').classList.remove('active');
+            document.getElementById('page-app').classList.add('active');
+            loadUserData();
+            setTimeout(() => { renderCharts(); updateSimulator(); }, 100);
+        }
+
+        async function signup() {
+            const name = document.getElementById('signupName').value;
+            const email = document.getElementById('signupEmail').value;
+            const password = document.getElementById('signupPassword').value;
+            const errorDiv = document.getElementById('signupError');
+            errorDiv.style.display = 'none';
+            
+            const { data, error } = await supabase.auth.signUp({ 
+                email, 
+                password,
+                options: { data: { full_name: name } }
+            });
+            if (error) {
+                errorDiv.textContent = error.message;
+                errorDiv.style.display = 'block';
+                return;
+            }
+            // Success – create profile
+            if (data.user) {
+                const { error: profileError } = await supabase
+                    .from('profiles')
+                    .insert([{ id: data.user.id, email: email, full_name: name }]);
+                if (profileError) console.log('Profile error:', profileError);
+            }
+            alert('Account created! Please check your email to confirm your account, then sign in.');
+            showLogin();
+        }
+
+        async function logout() {
+            await supabase.auth.signOut();
+            document.getElementById('page-app').classList.remove('active');
+            document.getElementById('page-login').classList.add('active');
+        }
+
+        // Check if user is already logged in
+        async function checkSession() {
+            const { data } = await supabase.auth.getSession();
+            if (data.session) {
+                document.getElementById('page-login').classList.remove('active');
+                document.getElementById('page-app').classList.add('active');
+                loadUserData();
+                setTimeout(() => { renderCharts(); updateSimulator(); }, 100);
+            }
+        }
+
+        // ============================================================
+        // LOAD USER DATA
+        // ============================================================
+        async function loadUserData() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+            
+            // Load disputes
+            const { data: disputes, error } = await supabase
+                .from('disputes')
+                .select('*')
+                .eq('user_id', user.id)
+                .order('created_at', { ascending: false });
+            
+            if (!error && disputes) {
+                const list = document.getElementById('disputesList');
+                const table = document.getElementById('disputesTable');
+                if (disputes.length === 0) {
+                    list.innerHTML = '<p class="text-gray-500 text-sm">No disputes yet. Upload a report and run a scan.</p>';
+                    table.innerHTML = '<p class="text-gray-500 text-sm">No disputes found. Run a scan to find violations.</p>';
+                } else {
+                    let html = '<ul class="space-y-2">';
+                    disputes.slice(0, 5).forEach(d => {
+                        html += `<li class="border-b pb-2"><span class="font-medium">${d.creditor || 'Unknown'}</span> – <span class="text-sm text-gray-600">${d.violation_type || 'Violation'}</span> <span class="badge-pending px-2 py-1 rounded-full text-xs">${d.status || 'draft'}</span></li>`;
+                    });
+                    html += '</ul>';
+                    list.innerHTML = html;
+                    
+                    let tableHtml = `<table class="w-full text-sm"><thead class="bg-gray-50"><tr><th class="p-2 text-left">Creditor</th><th class="p-2 text-left">Violation</th><th class="p-2 text-left">Status</th></tr></thead><tbody>`;
+                    disputes.forEach(d => {
+                        tableHtml += `<tr><td class="p-2">${d.creditor || 'Unknown'}</td><td class="p-2">${d.violation_type || 'Violation'}</td><td class="p-2"><span class="badge-pending px-2 py-1 rounded-full text-xs">${d.status || 'draft'}</span></td></tr>`;
+                    });
+                    tableHtml += '</tbody></table>';
+                    table.innerHTML = tableHtml;
+                }
+                document.getElementById('totalItems').innerText = disputes.length;
+                const high = disputes.filter(d => d.status === 'pending' || d.status === 'draft').length;
+                document.getElementById('highPriority').innerText = high;
+            }
+        }
+
+        // ============================================================
+        // PAGE SWITCH
+        // ============================================================
         function switchPage(page) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.getElementById('page-' + page).classList.add('active');
@@ -190,22 +330,34 @@
             if (page === 'dashboard') setTimeout(() => renderCharts(), 100);
         }
 
+        // ============================================================
+        // CHARTS
+        // ============================================================
         let lineChartInstance = null, doughnutChartInstance = null;
         function renderCharts() {
             if (lineChartInstance) lineChartInstance.destroy();
             if (doughnutChartInstance) doughnutChartInstance.destroy();
-            lineChartInstance = new Chart(document.getElementById('lineChart'), {
-                type: 'line',
-                data: { labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'], datasets: [{ label: 'Credit Score', data: [580, 590, 610, 620, 615, 620], borderColor: '#1A3C6E', backgroundColor: 'rgba(26,60,110,0.05)', tension: 0.2, fill: true }] },
-                options: { responsive: true, plugins: { legend: { display: false } } }
-            });
-            doughnutChartInstance = new Chart(document.getElementById('doughnutChart'), {
-                type: 'doughnut',
-                data: { labels: ['Collections', 'Late Payments', 'Inquiries', 'Other'], datasets: [{ data: [40, 30, 20, 10], backgroundColor: ['#E74C3C', '#F39C12', '#3498DB', '#95A5A6'], borderWidth: 2, borderColor: '#ffffff' }] },
-                options: { responsive: true, plugins: { legend: { position: 'bottom' } }, cutout: '65%' }
-            });
+            const lineCtx = document.getElementById('lineChart');
+            if (lineCtx) {
+                lineChartInstance = new Chart(lineCtx, {
+                    type: 'line',
+                    data: { labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'], datasets: [{ label: 'Credit Score', data: [580, 590, 610, 620, 615, 620], borderColor: '#1A3C6E', backgroundColor: 'rgba(26,60,110,0.05)', tension: 0.2, fill: true }] },
+                    options: { responsive: true, plugins: { legend: { display: false } } }
+                });
+            }
+            const doughnutCtx = document.getElementById('doughnutChart');
+            if (doughnutCtx) {
+                doughnutChartInstance = new Chart(doughnutCtx, {
+                    type: 'doughnut',
+                    data: { labels: ['Collections', 'Late Payments', 'Inquiries', 'Other'], datasets: [{ data: [40, 30, 20, 10], backgroundColor: ['#E74C3C', '#F39C12', '#3498DB', '#95A5A6'], borderWidth: 2, borderColor: '#ffffff' }] },
+                    options: { responsive: true, plugins: { legend: { position: 'bottom' } }, cutout: '65%' }
+                });
+            }
         }
 
+        // ============================================================
+        // SIMULATOR
+        // ============================================================
         function updateSimulator() {
             const base = 620;
             const payment = document.getElementById('paymentSelect').value;
@@ -224,11 +376,15 @@
             document.getElementById('displayScore').innerText = score;
         }
 
+        // ============================================================
+        // SCANNER
+        // ============================================================
         const sampleErrors = [
             { creditor: 'ABC Collections', type: 'Collection', amount: '$1,230.50', reason: 'This debt is over 7 years old and should have been removed.' },
             { creditor: 'XYZ Bank', type: 'Late Payment', amount: '$670.00', reason: 'This late payment is incorrect. You were never late on this account.' },
             { creditor: 'National Credit', type: 'Inquiry', amount: '$250.00', reason: 'This inquiry was made without your authorization.' }
         ];
+        let lastScanResults = [];
 
         function handleScan(event) {
             const file = event.target.files[0];
@@ -253,12 +409,33 @@
             document.getElementById('scanResults').classList.remove('hidden');
             const list = document.getElementById('errorList');
             list.innerHTML = '';
+            lastScanResults = sampleErrors;
             sampleErrors.forEach(item => {
                 const li = document.createElement('li');
                 li.className = 'border-b border-gray-100 pb-2';
                 li.innerHTML = `<div class="flex justify-between"><span class="font-medium">${item.creditor}</span><span class="text-sm text-red-600 font-bold">${item.type}</span></div><div class="text-sm text-gray-600">${item.amount} – ${item.reason}</div><button class="mt-1 bg-accent text-white text-xs px-3 py-1 rounded">Generate Dispute Letter</button>`;
                 list.appendChild(li);
             });
+        }
+
+        async function saveScanResults() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) { alert('Please log in first.'); return; }
+            
+            for (const item of lastScanResults) {
+                const { error } = await supabase
+                    .from('disputes')
+                    .insert([{
+                        user_id: user.id,
+                        creditor: item.creditor,
+                        violation_type: item.type,
+                        letter_content: item.reason,
+                        status: 'draft'
+                    }]);
+                if (error) console.log('Save error:', error);
+            }
+            alert('Scan results saved to your account!');
+            loadUserData();
         }
 
         function resetScanner() {
@@ -268,7 +445,11 @@
             document.getElementById('progressBar').style.width = '0%';
         }
 
+        // ============================================================
+        // INIT
+        // ============================================================
         window.onload = function() {
+            checkSession();
             renderCharts();
             updateSimulator();
         };
